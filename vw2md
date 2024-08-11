@@ -1,0 +1,49 @@
+#! /usr/bin/env bash
+
+apply_transforms() {
+  while read -r line; do
+    echo "$line" |
+      sed \
+        -e 's/^====== \(.*\) ======$/###### \1/' \
+        -e 's/^===== \(.*\) =====$/##### \1/' \
+        -e 's/^==== \(.*\) ====$/#### \1/' \
+        -e 's/^=== \(.*\) ===$/### \1/' \
+        -e 's/^== \(.*\) ==$/## \1/' \
+        -e 's/^= \(.*\) =$/# \1/' \
+        -e 's/\[\([^|]*\)|\([^]]*\)\]/[\2](\1)/g'
+  done
+}
+
+transform_file() {
+  local input
+  input="$1"
+  output="$1.md"
+  echo "$input -> $output"
+  apply_transforms <"$input" >"$output"
+}
+
+if (($#)); then
+  while (($#)); do
+    if [[ -d "$1" ]]; then
+      echo "=> $1"
+
+      find "$1" -type f -name \*.wiki -print0 | while read -r -d '' file; do
+        printf "  => "
+        transform_file "$file"
+      done
+    elif [[ -f "$1" ]]; then
+      printf "=> "
+      transform_file "$1"
+    else
+      echo >&2 "Invalid file: $1"
+    fi
+
+    shift
+  done
+elif [[ -t 0 ]]; then
+  echo >&2 "usage: vw2md [file|directory...]"
+  echo >&2 "usage: vw2md <input >output"
+  exit 1
+else
+  apply_transforms
+fi
